@@ -31,6 +31,28 @@ async function run() {
     const addToyCollection = client.db("EduToys").collection("addToys");
 
 
+ app.get('/toys', async(req, res)=>{
+  const result = await addToyCollection.find().toArray()
+  res.send(result);
+ })
+
+
+    app.get("/my-toys/:email", async(req, res)=>{
+      const email = req.params.email
+      const query = {sellerEmail: email}
+      const myToys = await addToyCollection.find(query).toArray()
+      res.send(myToys)
+    })
+
+    app.get("/categories/:category", async(req, res)=>{
+      const category = req.params.category;
+      const query = {category: category}
+      const myCategory = await addToyCollection.find(query).toArray()
+      res.send(myCategory)
+    })
+
+   
+
     app.post('/addToys', async(req, res)=>{
       const addToys= req.body;
       console.log(addToys);
