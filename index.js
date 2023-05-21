@@ -26,19 +26,42 @@ async function run() {
     // await client.connect();
 
     const addToyCollection = client.db("EduToys").collection("addToys");
+    const indexKeys = {toy:1, category:1}
+    const indexOptions = {name: "toyNameAndTitle"}
+    addToyCollection.createIndex(indexKeys, indexOptions)
 
     app.get("/toys", async (req, res) => {
-      const result = await addToyCollection.find().toArray();
+      const result = await addToyCollection.find().limit(20).toArray();
       res.send(result);
     });
 
+    // get data by search value 
+    app.get("/all-toys/:searchValue", async(req,res)=>{
+      const searchValue = req.params?.searchValue
+      const query={
+        $or: [
+          { toy: { $regex: searchValue, $options: "i" } },
+          { category: { $regex: searchValue, $options: "i" } },
+        ],
+      };
+      const toyBySearch = await addToyCollection.find(query).toArray()
+      res.send(toyBySearch)
+    })
     app.get("/toys/:id", async(req,res)=>{
       const id = req.params.id;
       const query = {_id: new ObjectId(id)}
       const result = await addToyCollection.findOne(query);
       res.send(result);
     })
-
+    app.get("/my-toys/:email", async(req, res)=>{
+      const email = req.params.email
+      const value = req.query.sortBy
+      if(value === "ascending"){
+        return res.send(await addToyCollection.find({sellerEmail:email}).sort({price:1}).toArray())
+      }else{
+        return res.send(await addToyCollection.find({sellerEmail:email}).sort({price:-1}).toArray())
+      }
+    })
     app.get("/my-toys", async (req, res) => {
       console.log(req.query.email);
 
@@ -74,7 +97,7 @@ async function run() {
     const updatedToy = req.body;
     const updateDoc = {
       $set: {
-        price: updatedToy.price,
+        price: parseFloat(updatedToy.price),
         quantity: updatedToy.quantity,
         details: updatedToy.details,
       },
@@ -92,6 +115,7 @@ async function run() {
 
     app.post("/addToys", async (req, res) => {
       const addToys = req.body;
+      addToys.price = parseFloat(addToys.price)
       console.log(addToys);
       const result = await addToyCollection.insertOne(addToys);
       res.send(result);
